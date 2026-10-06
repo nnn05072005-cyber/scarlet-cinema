@@ -9,7 +9,7 @@ COPY src ./src
 RUN mvn -B -ntp -DskipTests package
 
 # Giai đoạn 2: chỉ giữ lại Java và file jar để chạy, cho gói nhỏ và khởi động nhanh
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/scarlet-cinema.jar app.jar
 
