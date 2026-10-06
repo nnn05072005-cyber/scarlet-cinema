@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Phim sắp chiếu')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('phim')}"></header>
+<main>
+<div class="khung">
+  <nav class="duong-dan so"><a th:href="@{/}">Phim</a><span>/</span><b>Phim sắp chiếu</b></nav>
+  <div class="dau-muc dau-sap">
+    <h2 class="td">Phim sắp chiếu<sup th:text="${@fmt.haiSo(#lists.size(sapChieu)) + ' PHIM'}">04 PHIM</sup></h2>
+    <p>Xếp theo ngày khởi chiếu. Lịch chiếu được mở trước ngày khởi chiếu.</p>
+  </div>
+  <!-- Toàn bộ phim sắp chiếu, 4 thẻ một hàng -->
+  <div class="luoi-sap">
+    <th:block th:each="p : ${sapChieu}"><article th:replace="~{fragments/khung :: theSap(${p}, true)}"></article></th:block>
+  </div>
+  <p class="trong" th:if="${#lists.isEmpty(sapChieu)}">Hiện chưa có phim sắp chiếu. <a class="lien-ket" th:href="@{/} + '#dang-chieu'">Xem phim đang chiếu</a></p>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Chọn ghế')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('phim')}"></header>
+<main>
+<div class="khung">
+  <nav class="duong-dan so">
+    <a th:href="@{/}">Phim</a><span>/</span>
+    <a th:href="@{/phim/{id}(id=${suat.movieId()})}" th:text="${suat.movieTitle()}">Tên phim</a><span>/</span><b>Chọn ghế</b>
+  </nav>
+  <th:block th:replace="~{fragments/khung :: thongBao}"></th:block>
+  <p class="thong-bao nhe" th:if="${donCho != null}">
+    Bạn đang giữ ghế <b th:text="${donCho.seats()}">E4, E5</b> của suất này, chưa thanh toán.
+    <a class="lien-ket" th:href="@{/thanh-toan/{ma}(ma=${donCho.code()})}">Thanh toán ngay</a>
+  </p>
+
+  <!-- Mỗi ghế trống là một ô đánh dấu tên "ghe". Bấm "Tiếp tục thanh toán" thì gửi các ghế đã chọn về máy chủ để giữ ghế. -->
+  <form class="dat-ghe" id="mau-dat-ve" method="post" th:action="@{/dat-ve/{id}(id=${suat.id()})}"
+        th:attr="data-gia=${suat.price()}, data-toi-da=${toiDa}">
+    <div class="o-khoi phong">
+      <div class="man-hinh"></div>
+      <div class="chu-man-hinh so" th:text="${'Màn hình · ' + suat.roomName()}">Màn hình · Phòng 3</div>
+
+      <div class="hang-ghe" th:each="h : ${cacHang}">
+        <div class="ten-hang" th:text="${h.letter()}">A</div>
+        <th:block th:each="g : ${h.left()}">
+          <span class="ghe da-ban" th:if="${g.sold()}" th:text="${g.number()}">1</span>
+          <label class="ghe" th:unless="${g.sold()}"><input type="checkbox" name="ghe" th:value="${g.code()}"><th:block th:text="${g.number()}">1</th:block></label>
+        </th:block>
+        <div class="ghe loi-di"></div>
+        <th:block th:each="g : ${h.right()}">
+          <span class="ghe da-ban" th:if="${g.sold()}" th:text="${g.number()}">6</span>
+          <label class="ghe" th:unless="${g.sold()}"><input type="checkbox" name="ghe" th:value="${g.code()}"><th:block th:text="${g.number()}">6</th:block></label>
+        </th:block>
+        <div class="ten-hang" th:text="${h.letter()}">A</div>
+      </div>
+
+      <div class="chu-thich">
+        <span><span class="ghe"></span>Ghế trống</span>
+        <span><span class="ghe chon"></span>Đang chọn</span>
+        <span><span class="ghe da-ban"></span>Đã bán hoặc đang giữ</span>
+      </div>
+    </div>
+
+    <aside class="hoa-don">
+      <div class="tren">
+        <span class="so">Thông tin đặt vé</span>
+        <h2 class="td" th:classappend="${suat.sizeClass()}" th:text="${suat.movieTitle()}">Tên phim</h2>
+        <div class="dong"><span>Suất chiếu</span><b th:text="${@fmt.gio(suat.startTime()) + ' · ' + @fmt.thu(suat.startTime()) + ', ' + @fmt.ngay(suat.startTime())}">19:30 · Thứ Hai, 05.10.2026</b></div>
+        <div class="dong"><span>Phòng</span><b th:text="${suat.roomName()}">Phòng 3</b></div>
+        <div class="dong"><span>Ghế đã chọn</span><b class="ma" id="ds-ghe">Chưa chọn</b></div>
+        <div class="dong"><span>Giá vé</span><b id="gia-ve" th:text="${@fmt.tien(suat.price())}">75.000 đ</b></div>
+      </div>
+      <div class="duoi">
+        <div class="tong"><span class="so">Tổng tiền</span><b id="tong-tien">0 đ</b></div>
+        <button class="nut nut-do" id="nut-dat" type="submit" disabled>Tiếp tục thanh toán</button>
+        <p class="ghi-chu" id="ghi-chu-ghe" th:text="${'Mỗi lần đặt tối đa ' + toiDa + ' ghế. Ghế được giữ ' + phutGiu + ' phút để bạn thanh toán.'}">Mỗi lần đặt tối đa 8 ghế.</p>
+      </div>
+    </aside>
+  </form>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+<script>
+// Cập nhật hóa đơn bên phải mỗi khi chọn hoặc bỏ chọn một ghế. Máy chủ vẫn tự tính lại tiền khi lưu.
+(function () {
+  var mau = document.getElementById("mau-dat-ve");
+  var gia = Number(mau.getAttribute("data-gia"));
+  var toiDa = Number(mau.getAttribute("data-toi-da"));
+  var cacO = Array.prototype.slice.call(mau.querySelectorAll("input[name=ghe]"));
+  var ghiChu = document.getElementById("ghi-chu-ghe");
+
+  function tien(so) {
+    return String(so).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " đ";
+  }
+  function capNhat() {
+    var chon = [];
+    cacO.forEach(function (o) {
+      o.parentNode.classList.toggle("chon", o.checked);
+      if (o.checked) { chon.push(o.value); }
+    });
+    document.getElementById("ds-ghe").textContent = chon.length ? chon.join(", ") : "Chưa chọn";
+    document.getElementById("gia-ve").textContent = chon.length ? chon.length + " × " + tien(gia) : tien(gia);
+    document.getElementById("tong-tien").textContent = tien(gia * chon.length);
+    document.getElementById("nut-dat").disabled = chon.length === 0;
+  }
+  cacO.forEach(function (o) {
+    o.addEventListener("change", function () {
+      var soChon = cacO.filter(function (x) { return x.checked; }).length;
+      ghiChu.classList.toggle("canh-bao", soChon > toiDa);
+      if (soChon > toiDa) { o.checked = false; }
+      capNhat();
+    });
+  });
+  capNhat();
+})();
+</script>
+</body>
+</html>

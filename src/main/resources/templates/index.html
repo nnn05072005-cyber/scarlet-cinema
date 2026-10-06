@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('phim')}"></header>
+<main>
+<div class="khung">
+  <section class="mo-dau">
+    <!-- Phim nổi bật: phim đang chiếu có nhiều suất chiếu sắp tới nhất -->
+    <div class="o-khoi noi-bat">
+      <th:block th:if="${noiBat != null}" th:with="anhMay=${'/posters/p' + noiBat.id() + '.jpg'}">
+        <img th:if="${noiBat.backdropUrl() != null}" class="anh-nen" th:src="${noiBat.backdropUrl()}" referrerpolicy="no-referrer" alt=""
+             th:attr="data-du-phong=${(noiBat.posterUrl() != null ? noiBat.posterUrl() + ' ' : '') + anhMay}" onerror="anhNenLoi(this)">
+        <img th:if="${noiBat.backdropUrl() == null}" class="anh-nen du-phong" th:src="${noiBat.posterUrl() != null ? noiBat.posterUrl() : anhMay}"
+             referrerpolicy="no-referrer" alt="" th:attr="data-du-phong=${noiBat.posterUrl() != null ? anhMay : null}" onerror="anhNenLoi(this)">
+        <div class="tren"><span class="so">Đang chiếu · Nổi bật</span><span class="so" th:text="${noiBat.info()}">K · 109 phút</span></div>
+        <div>
+          <h1 class="td" th:classappend="${noiBat.sizeClass()}" th:text="${noiBat.title()}">Tên phim</h1>
+          <p th:text="${noiBat.description()}">Tóm tắt nội dung phim.</p>
+          <div class="hanh-dong">
+            <a class="nut nut-do" th:href="@{/phim/{id}(id=${noiBat.id()})} + '#lich-chieu'">Đặt vé ngay</a>
+            <a class="mui-ten" th:href="@{/phim/{id}(id=${noiBat.id()})}">Xem chi tiết</a>
+          </div>
+        </div>
+      </th:block>
+      <div th:if="${noiBat == null}"><h1 class="td">Scarlet Cinema</h1><p>Hiện chưa có phim nào đang chiếu.</p></div>
+    </div>
+
+    <div class="cot-phai">
+      <!-- Các suất sắp chiếu của ngày gần nhất, kèm số ghế còn trống -->
+      <div class="o-khoi hom-nay">
+        <div class="dau">
+          <h2 class="td" th:text="${tenNgaySuat}">Hôm nay</h2>
+          <span class="so" th:text="${@fmt.thu(ngaySuat) + ' · ' + @fmt.ngayThang(ngaySuat)}">Thứ Hai · 05.10</span>
+        </div>
+        <a class="suat" th:each="s : ${suatSapToi}" th:href="@{/dat-ve/{id}(id=${s.id()})}">
+          <span class="gio" th:text="${@fmt.gio(s.startTime())}">19:30</span>
+          <span class="ten"><th:block th:text="${s.movieTitle()}">Tên phim</th:block><span th:text="${s.roomName() + (s.ageRating() != null ? ' · ' + s.ageRating() : '')}">Phòng 3 · K</span></span>
+          <span class="con" th:classappend="${s.almostFull()} ? 'sap-het'" th:text="${s.seatsLeft() > 0 ? 'Còn ' + s.seatsLeft() + ' ghế' : 'Hết ghế'}">Còn 67 ghế</span>
+        </a>
+        <p class="trong" th:if="${#lists.isEmpty(suatSapToi)}">Hiện chưa có suất chiếu nào sắp tới.</p>
+        <a class="mui-ten" href="#dang-chieu">Toàn bộ lịch chiếu</a>
+      </div>
+      <!-- Phiếu nhỏ trên ảnh bìa: mã ưu đãi đầu tiên đang dùng được -->
+      <a class="phieu" th:if="${!#lists.isEmpty(uuDai)}" th:with="u=${uuDai[0]}" href="#uu-dai">
+        <div class="gia-tri" th:text="${u.label()}">10%</div>
+        <div class="noi-dung"><span class="so" th:text="${'Mã ' + u.code()}">Mã SCARLET10</span><b th:text="${u.title()}">Giảm 10% mọi đơn</b><p>Nhập mã khi thanh toán</p></div>
+      </a>
+    </div>
+  </section>
+
+  <!-- Đặt vé nhanh: chọn phim, ngày, suất chiếu rồi sang thẳng trang chọn ghế -->
+  <form class="o-khoi dat-nhanh" id="dat-nhanh" method="get" th:action="@{/dat-ve}">
+    <h2 class="td">Đặt vé nhanh</h2>
+    <label class="o-chon"><span class="so">Phim</span><select id="dn-phim"></select></label>
+    <label class="o-chon"><span class="so">Ngày</span><select id="dn-ngay"></select></label>
+    <label class="o-chon"><span class="so">Suất chiếu</span><select id="dn-suat" name="suat"></select></label>
+    <button class="nut nut-do" type="submit">Chọn ghế</button>
+  </form>
+
+  <div class="dau-muc" id="dang-chieu">
+    <h2 class="td">Phim đang chiếu<sup th:text="${@fmt.haiSo(tongDangChieu) + ' PHIM'}">08 PHIM</sup></h2>
+    <!-- Lọc theo thể loại và tìm theo tên: gửi về máy chủ, máy chủ chạy câu SQL có LIKE -->
+    <form class="loc" method="get" th:action="@{/} + '#dang-chieu'">
+      <a th:classappend="${theLoai == ''} ? 'bat'" th:href="@{/(tim=${tim})} + '#dang-chieu'">Tất cả</a>
+      <a th:each="g : ${dsTheLoai}" th:classappend="${#strings.equalsIgnoreCase(theLoai, g)} ? 'bat'"
+         th:href="@{/(theLoai=${g}, tim=${tim})} + '#dang-chieu'" th:text="${g}">Hoạt hình</a>
+      <input type="hidden" name="theLoai" th:value="${theLoai}">
+      <input class="tim" type="search" name="tim" th:value="${tim}" placeholder="Tìm tên phim" aria-label="Tìm tên phim">
+    </form>
+  </div>
+  <div class="luoi-phim">
+    <th:block th:each="p, dem : ${dangChieu}"><article th:replace="~{fragments/khung :: theDangChieu(${p}, ${dem.count})}"></article></th:block>
+  </div>
+  <p class="trong" th:if="${#lists.isEmpty(dangChieu)}">Không có phim nào khớp. <a class="lien-ket" th:href="@{/} + '#dang-chieu'">Xem tất cả phim</a></p>
+
+  <!-- Phim sắp chiếu: dải thẻ poster trượt ngang, mỗi lần thấy 4 phim. Mũi tên và chấm trang do JavaScript bật khi còn phim chưa thấy -->
+  <section class="sap-chieu" id="sap-chieu" th:unless="${#lists.isEmpty(sapChieu)}">
+    <h2 class="td">Phim sắp chiếu</h2>
+    <div class="bang-chuyen" id="bang-sap-chieu">
+      <button class="mui trai" type="button" aria-label="Các phim trước" hidden></button>
+      <div class="ray">
+        <th:block th:each="p : ${sapChieu}"><article th:replace="~{fragments/khung :: theSap(${p}, false)}"></article></th:block>
+      </div>
+      <button class="mui phai" type="button" aria-label="Các phim tiếp theo" hidden></button>
+    </div>
+    <div class="cham" id="cham-sap-chieu" hidden></div>
+    <a class="nut nut-vien xem-them" th:href="@{/phim-sap-chieu}">Xem thêm</a>
+  </section>
+
+  <!-- Mã ưu đãi lấy từ bảng promotions: chỉ các mã đang bật, còn hạn và còn lượt -->
+  <div class="dau-muc" id="uu-dai">
+    <h2 class="td">Ưu đãi<sup th:text="${@fmt.haiSo(#lists.size(uuDai)) + ' MÃ ĐANG DÙNG ĐƯỢC'}">04 MÃ ĐANG DÙNG ĐƯỢC</sup></h2>
+  </div>
+  <p class="ghi-chu" style="margin:0 0 18px" th:if="${!#lists.isEmpty(uuDai)}">Chọn ghế xong, nhập mã ở bước thanh toán. Mỗi đơn dùng một mã, mỗi tài khoản dùng mỗi mã một lần.</p>
+  <p class="ghi-chu" style="margin-top:0" th:if="${#lists.isEmpty(uuDai)}">Hiện chưa có mã ưu đãi nào. Bạn quay lại sau nhé.</p>
+  <div class="luoi-uu-dai">
+    <div class="phieu" th:each="u : ${uuDai}">
+      <div class="gia-tri" th:text="${u.label()}">10%</div>
+      <div class="noi-dung">
+        <span class="so" th:text="${'Đến hết ' + @fmt.ngay(u.endDate())}">Đến hết 04.12.2026</span>
+        <b th:text="${u.title()}">Giảm 10% mọi đơn</b>
+        <p th:text="${u.description()}">Giảm 10% tiền vé, tối đa 30.000 đ.</p>
+        <button class="ma-phieu" type="button" th:attr="data-ma=${u.code()}" title="Bấm để chép mã"><span class="so">Mã</span><b th:text="${u.code()}">SCARLET10</b><i>Chép</i></button>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+
+<!-- Quảng cáo khuyến mãi, hiện một lần khi mới vào web -->
+<div class="modal fade" id="quang-cao" tabindex="-1" aria-label="Chương trình khuyến mãi" th:if="${!#lists.isEmpty(uuDai)}" th:with="u=${uuDai[0]}">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px"><div class="modal-content qc">
+    <div class="phieu-lon">
+      <button class="dong" data-bs-dismiss="modal" aria-label="Đóng">&times;</button>
+      <div class="tren"><span class="so" th:text="${'Mã ưu đãi · ' + u.code()}">Mã ưu đãi · SCARLET10</span><div class="gia-tri" th:text="${u.label()}">10%</div><span class="so" th:text="${'Đến hết ' + @fmt.ngay(u.endDate())}">Đến hết 04.12.2026</span></div>
+      <div class="duoi">
+        <h2 class="td" th:text="${u.title()}">Giảm 10% mọi đơn</h2>
+        <p><th:block th:text="${u.description()}">Giảm 10% tiền vé.</th:block> Nhập mã <b th:text="${u.code()}">SCARLET10</b> ở bước thanh toán.</p>
+        <a class="nut nut-do" href="#uu-dai" data-bs-dismiss="modal">Xem ưu đãi</a><a class="de-sau" href="#" data-bs-dismiss="modal">Để sau</a>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<script>
+// Phim sắp chiếu: dải thẻ trượt ngang. Mỗi "trang" là số thẻ nhìn thấy cùng lúc (4 trên máy tính, 2 trên điện thoại).
+// Mũi tên và chấm trang chỉ hiện khi số phim nhiều hơn một trang.
+(function () {
+  var bang = document.getElementById("bang-sap-chieu");
+  if (!bang) { return; }
+  var ray = bang.querySelector(".ray");
+  var trai = bang.querySelector(".mui.trai");
+  var phai = bang.querySelector(".mui.phai");
+  var cham = document.getElementById("cham-sap-chieu");
+
+  function buoc() { return ray.clientWidth + (parseFloat(getComputedStyle(ray).columnGap) || 0); }
+  function soTrang() { return Math.max(1, Math.ceil((ray.scrollWidth - 2) / buoc())); }
+  function trangDangXem() {
+    if (ray.scrollLeft >= ray.scrollWidth - ray.clientWidth - 2) { return soTrang() - 1; }
+    return Math.round(ray.scrollLeft / buoc());
+  }
+  function denTrang(so) { ray.scrollTo({ left: so * buoc(), behavior: "smooth" }); }
+
+  function capNhat() {
+    var tong = soTrang();
+    var dang = trangDangXem();
+    var nhieuTrang = tong > 1;
+    trai.hidden = phai.hidden = cham.hidden = !nhieuTrang;
+    if (!nhieuTrang) { return; }
+    // Mũi tên nằm giữa chiều cao của poster
+    var poster = ray.querySelector(".poster");
+    trai.style.top = phai.style.top = (poster ? poster.offsetHeight / 2 : 0) + "px";
+    trai.disabled = dang === 0;
+    phai.disabled = dang === tong - 1;
+    if (cham.children.length !== tong) {
+      cham.innerHTML = "";
+      for (var i = 0; i < tong; i++) {
+        var nut = document.createElement("button");
+        nut.type = "button";
+        nut.setAttribute("aria-label", "Trang " + (i + 1));
+        nut.addEventListener("click", denTrang.bind(null, i));
+        cham.appendChild(nut);
+      }
+    }
+    for (var j = 0; j < cham.children.length; j++) { cham.children[j].className = j === dang ? "bat" : ""; }
+  }
+
+  trai.addEventListener("click", function () { denTrang(trangDangXem() - 1); });
+  phai.addEventListener("click", function () { denTrang(trangDangXem() + 1); });
+  ray.addEventListener("scroll", capNhat);
+  window.addEventListener("resize", capNhat);
+  window.addEventListener("load", capNhat);
+  capNhat();
+})();
+</script>
+
+<script th:inline="javascript">
+// Các suất chiếu trong 7 ngày tới, do máy chủ lấy từ MySQL rồi đưa sang đây
+var SUAT = /*[[${suatNhanh}]]*/ [];
+
+// Đặt vé nhanh: chọn phim thì ô ngày chỉ hiện những ngày phim đó có suất; chọn ngày thì ô suất hiện các giờ chiếu
+(function () {
+  var oPhim = document.getElementById("dn-phim");
+  var oNgay = document.getElementById("dn-ngay");
+  var oSuat = document.getElementById("dn-suat");
+
+  function doDay(o, cacMuc) {
+    o.innerHTML = "";
+    cacMuc.forEach(function (muc) {
+      var lua = document.createElement("option");
+      lua.value = muc.giaTri;
+      lua.textContent = muc.nhan;
+      o.appendChild(lua);
+    });
+    o.disabled = cacMuc.length === 0;
+  }
+  function khongTrung(cacMuc) {
+    var daCo = {};
+    return cacMuc.filter(function (muc) {
+      if (daCo[muc.giaTri]) { return false; }
+      daCo[muc.giaTri] = true;
+      return true;
+    });
+  }
+  function capNhatSuat() {
+    var ds = SUAT.filter(function (s) { return String(s.phimId) === oPhim.value && s.ngay === oNgay.value; });
+    doDay(oSuat, ds.map(function (s) { return { giaTri: s.id, nhan: s.gio + " · " + s.phong }; }));
+  }
+  function capNhatNgay() {
+    var ds = SUAT.filter(function (s) { return String(s.phimId) === oPhim.value; });
+    doDay(oNgay, khongTrung(ds.map(function (s) { return { giaTri: s.ngay, nhan: s.nhanNgay }; })));
+    capNhatSuat();
+  }
+  doDay(oPhim, khongTrung(SUAT.map(function (s) { return { giaTri: s.phimId, nhan: s.phim }; })));
+  if (SUAT.length === 0) { doDay(oPhim, [{ giaTri: "", nhan: "Chưa có suất chiếu" }]); }
+  oPhim.addEventListener("change", capNhatNgay);
+  oNgay.addEventListener("change", capNhatSuat);
+  capNhatNgay();
+})();
+
+// Bấm vào mã trên phiếu ưu đãi để chép mã, khỏi phải gõ lại ở bước thanh toán
+Array.prototype.forEach.call(document.querySelectorAll(".ma-phieu"), function (nut) {
+  nut.addEventListener("click", function () {
+    var chu = nut.querySelector("i");
+    function xong(ok) {
+      chu.textContent = ok ? "Đã chép" : "Hãy ghi lại mã";
+      setTimeout(function () { chu.textContent = "Chép"; }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(nut.getAttribute("data-ma")).then(function () { xong(true); }, function () { xong(false); });
+    } else { xong(false); }
+  });
+});
+
+// Hiện quảng cáo khuyến mãi một lần cho mỗi lần mở trình duyệt
+document.addEventListener("DOMContentLoaded", function () {
+  var daXem = false;
+  try { daXem = sessionStorage.getItem("da-xem-quang-cao") === "1"; } catch (e) {}
+  if (daXem && location.hash !== "#quang-cao") { return; }
+  var hop = document.getElementById("quang-cao");
+  if (!hop) { return; }  // không có mã ưu đãi nào đang chạy thì không có quảng cáo
+  new bootstrap.Modal(hop).show();
+  try { sessionStorage.setItem("da-xem-quang-cao", "1"); } catch (e) {}
+});
+</script>
+</body>
+</html>

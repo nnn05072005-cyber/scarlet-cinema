@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Đăng ký')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('')}"></header>
+<main>
+<div class="khung">
+  <div class="cua-vao">
+    <div class="o-khoi loi-chao">
+      <div>
+        <span class="so" style="color:var(--chu)">Thành viên Scarlet</span>
+        <h1 class="td" style="margin-top:14px">Tạo tài<br>khoản mới</h1>
+        <p>Chỉ mất một phút. Có tài khoản là đặt được vé và giữ lại toàn bộ lịch sử vé của bạn.</p>
+      </div>
+      <!-- Phiếu ưu đãi: mã thứ hai đang dùng được (nếu chỉ có một mã thì lấy mã đó) -->
+      <div class="phieu" th:if="${!#lists.isEmpty(uuDai)}" th:with="u=${uuDai[#lists.size(uuDai) - 1]}">
+        <div class="gia-tri" th:text="${u.label()}">20K</div>
+        <div class="noi-dung"><span class="so" th:text="${'Mã ' + u.code()}">Mã BANMOI</span><b th:text="${u.title()}">Chào bạn mới</b><p>Nhập mã khi thanh toán</p></div>
+      </div>
+    </div>
+    <form class="o-khoi mau-don" method="post" th:action="@{/dang-ky}">
+      <h2 class="td">Đăng ký</h2>
+      <p class="thong-bao" th:if="${loi != null}" th:text="${loi}">Có lỗi.</p>
+      <label class="truong"><span class="so">Họ và tên</span><input name="hoTen" th:value="${form['hoTen']}" placeholder="Nguyễn Văn A" required maxlength="100" autocomplete="name"></label>
+      <label class="truong"><span class="so">Email</span><input type="email" name="email" th:value="${form['email']}" placeholder="ban@example.com" required maxlength="150" autocomplete="username"></label>
+      <label class="truong"><span class="so">Mật khẩu</span><input type="password" name="matKhau" placeholder="Ít nhất 8 ký tự" required minlength="8" maxlength="72" autocomplete="new-password"></label>
+      <label class="truong"><span class="so">Nhập lại mật khẩu</span><input type="password" name="nhapLai" placeholder="Nhập lại mật khẩu" required minlength="8" maxlength="72" autocomplete="new-password"></label>
+      <button class="nut nut-do" type="submit">Đăng ký</button>
+      <p class="cuoi">Đã có tài khoản? <a class="lien-ket" th:href="@{/dang-nhap}" style="color:var(--chu)">Đăng nhập</a></p>
+    </form>
+  </div>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+</body>
+</html>

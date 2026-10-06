@@ -1,0 +1,22 @@
+# Dockerfile.vercel: Vercel thấy file này ở thư mục gốc thì tự đóng gói web thành một "container" và chạy nó.
+# Trên máy tính cá nhân không cần file này (chạy bằng chay-web.bat).
+
+# Giai đoạn 1: dùng Maven để build mã nguồn thành file scarlet-cinema.jar
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn -B -ntp -DskipTests package
+
+# Giai đoạn 2: chỉ giữ lại Java và file jar để chạy, cho gói nhỏ và khởi động nhanh
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/scarlet-cinema.jar app.jar
+
+# Vercel gửi yêu cầu vào cổng 80 của container; ứng dụng đọc cổng từ biến PORT (xem application.properties)
+ENV PORT=80
+EXPOSE 80
+
+# Địa chỉ và mật khẩu MySQL KHÔNG ghi ở đây: đặt ba biến DB_URL, DB_USER, DB_PASSWORD trong phần cài đặt của Vercel.
+# Hai tùy chọn -XX giúp Java khởi động nhanh hơn trên máy chủ nhỏ.
+CMD ["sh", "-c", "exec java -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -jar app.jar"]

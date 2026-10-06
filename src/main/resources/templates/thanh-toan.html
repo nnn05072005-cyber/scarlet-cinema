@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Thanh toán')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('phim')}"></header>
+<main>
+<div class="khung">
+  <nav class="duong-dan so">
+    <a th:href="@{/}">Phim</a><span>/</span>
+    <a th:href="@{/phim/{id}(id=${don.movieId()})}" th:text="${don.movieTitle()}">Tên phim</a><span>/</span>
+    <a th:href="@{/dat-ve/{id}(id=${don.showtimeId()})}">Chọn ghế</a><span>/</span><b>Thanh toán</b>
+  </nav>
+  <th:block th:replace="~{fragments/khung :: thongBao}"></th:block>
+
+  <!-- Bấm "Thanh toán" gửi cách thanh toán đã chọn về máy chủ. Nút "Hủy đơn" gửi cùng mẫu này tới địa chỉ /huy. -->
+  <form class="dat-ghe" method="post" th:action="@{/thanh-toan/{ma}(ma=${don.code()})}">
+    <div class="o-khoi thanh-toan">
+      <div class="dau">
+        <h1 class="td">Thanh toán</h1>
+        <!-- Đồng hồ đếm ngược thời gian giữ ghế; số giây còn lại do máy chủ tính -->
+        <span class="so">Giữ ghế còn <b class="dem-nguoc" id="dem-nguoc" th:attr="data-con=${don.secondsLeft()}">10:00</b></span>
+      </div>
+      <p class="ghi-chu" style="margin-top:0">Ghế của bạn đang được giữ. Vé và mã QR soát vé chỉ được cấp sau khi thanh toán xong.</p>
+
+      <div class="cac-cach">
+        <label class="cach"><input type="radio" name="cach" value="BANK_QR" checked><b>Chuyển khoản QR</b><span class="so">Quét mã bằng ứng dụng ngân hàng</span></label>
+        <label class="cach"><input type="radio" name="cach" value="CARD"><b>Thẻ ngân hàng</b><span class="so">Thẻ nội địa hoặc thẻ quốc tế</span></label>
+        <label class="cach"><input type="radio" name="cach" value="EWALLET"><b>Ví điện tử</b><span class="so">Trả bằng số dư trong ví</span></label>
+      </div>
+
+      <!-- Phần hướng dẫn đổi theo cách thanh toán đang chọn -->
+      <div class="khoi-tra" data-cach="BANK_QR">
+        <div class="qr" th:utext="${qr}"></div>
+        <div>
+          <div class="muc"><span class="so">Nội dung chuyển khoản</span><b class="ma" th:text="${don.code()}">SC-20261005-0154</b></div>
+          <div class="muc"><span class="so">Số tiền</span><b class="ma" th:text="${@fmt.tien(don.totalAmount())}">225.000 đ</b></div>
+          <p class="ghi-chu" style="margin:0">Quét mã, chuyển đúng số tiền và nội dung, rồi bấm nút Thanh toán.</p>
+        </div>
+      </div>
+      <div class="khoi-tra chu" data-cach="CARD" hidden>
+        <p>Bấm nút Thanh toán để trả <b th:text="${@fmt.tien(don.totalAmount())}">225.000 đ</b> bằng thẻ ngân hàng.</p>
+      </div>
+      <div class="khoi-tra chu" data-cach="EWALLET" hidden>
+        <p>Bấm nút Thanh toán để trả <b th:text="${@fmt.tien(don.totalAmount())}">225.000 đ</b> bằng ví điện tử.</p>
+      </div>
+
+      <p class="ghi-chu thu">Chế độ thử nghiệm: trang này không kết nối ngân hàng và không trừ tiền thật.</p>
+    </div>
+
+    <aside class="hoa-don">
+      <div class="tren">
+        <span class="so">Đơn đặt vé</span>
+        <h2 class="td" th:classappend="${don.sizeClass()}" th:text="${don.movieTitle()}">Tên phim</h2>
+        <div class="dong"><span>Mã đơn</span><b class="ma" th:text="${don.code()}">SC-20261005-0154</b></div>
+        <div class="dong"><span>Suất chiếu</span><b th:text="${@fmt.gio(don.startTime()) + ' · ' + @fmt.thu(don.startTime()) + ', ' + @fmt.ngay(don.startTime())}">19:30 · Thứ Hai, 05.10.2026</b></div>
+        <div class="dong"><span>Phòng</span><b th:text="${don.roomName()}">Phòng 3</b></div>
+        <div class="dong"><span>Ghế</span><b class="ma" th:text="${don.seats()}">E4, E5, E6</b></div>
+        <div class="dong"><span>Giá vé</span><b th:text="${don.ticketCount() + ' × ' + @fmt.tien(don.unitPrice())}">3 × 75.000 đ</b></div>
+        <!-- Hai dòng này chỉ hiện khi đơn đã áp mã ưu đãi -->
+        <th:block th:if="${don.discounted()}">
+          <div class="dong"><span>Tiền vé</span><b th:text="${@fmt.tien(don.subtotal())}">225.000 đ</b></div>
+          <div class="dong giam"><span th:text="${'Mã ' + don.promoCode()}">Mã SCARLET10</span><b th:text="${'− ' + @fmt.tien(don.discountAmount())}">− 22.500 đ</b></div>
+        </th:block>
+      </div>
+      <div class="duoi">
+        <!-- Ô nhập mã ưu đãi. Nút "Áp dụng" gửi cùng mẫu này tới địa chỉ /ma, máy chủ kiểm tra mã rồi tính lại tổng tiền. -->
+        <div class="ma-uu-dai" th:unless="${don.discounted()}">
+          <label class="so" for="o-ma">Mã ưu đãi</label>
+          <div class="hang">
+            <input id="o-ma" name="ma" th:value="${maNhap}" maxlength="20" placeholder="Nhập mã" autocomplete="off" autocapitalize="characters" spellcheck="false">
+            <button class="nut nut-giay" type="submit" th:formaction="@{/thanh-toan/{ma}/ma(ma=${don.code()})}">Áp dụng</button>
+          </div>
+          <p class="ghi-chu canh-bao" id="nhac-ma" hidden>Bạn đã nhập mã nhưng chưa bấm Áp dụng. Bấm Áp dụng trước, hoặc xóa ô mã rồi thanh toán.</p>
+        </div>
+        <div class="ma-uu-dai da-ap" th:if="${don.discounted()}">
+          <span>Đang dùng mã <b class="ma" th:text="${don.promoCode()}">SCARLET10</b></span>
+          <button class="bo-ma" type="submit" th:formaction="@{/thanh-toan/{ma}/bo-ma(ma=${don.code()})}">Bỏ mã</button>
+        </div>
+        <div class="tong"><span class="so">Tổng tiền</span><b th:text="${@fmt.tien(don.totalAmount())}">225.000 đ</b></div>
+        <button class="nut nut-do" type="submit" id="nut-tra" th:text="${'Thanh toán ' + @fmt.tien(don.totalAmount())}">Thanh toán 225.000 đ</button>
+        <button class="nut nut-giay" type="submit" th:formaction="@{/thanh-toan/{ma}/huy(ma=${don.code()})}">Hủy đơn, chọn lại ghế</button>
+      </div>
+    </aside>
+  </form>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+<script>
+(function () {
+  // 1. Đếm ngược thời gian giữ ghế. Hết giờ thì tải lại trang để máy chủ hủy đơn và báo cho khách.
+  var o = document.getElementById("dem-nguoc");
+  var hetLuc = Date.now() + Number(o.getAttribute("data-con")) * 1000;
+  function haiSo(n) { return (n < 10 ? "0" : "") + n; }
+  function ve() {
+    var con = Math.max(0, Math.round((hetLuc - Date.now()) / 1000));
+    o.textContent = haiSo(Math.floor(con / 60)) + ":" + haiSo(con % 60);
+    o.classList.toggle("gap", con <= 60);
+    if (con === 0) { clearInterval(dongHo); location.reload(); }
+  }
+  var dongHo = setInterval(ve, 1000);
+  ve();
+
+  // 2. Đổi phần hướng dẫn theo cách thanh toán đang chọn
+  var cacO = Array.prototype.slice.call(document.querySelectorAll("input[name=cach]"));
+  var cacKhoi = Array.prototype.slice.call(document.querySelectorAll(".khoi-tra"));
+  function doiCach() {
+    var chon = cacO.filter(function (x) { return x.checked; })[0].value;
+    cacO.forEach(function (x) { x.parentNode.classList.toggle("chon", x.checked); });
+    cacKhoi.forEach(function (k) { k.hidden = k.getAttribute("data-cach") !== chon; });
+  }
+  cacO.forEach(function (x) { x.addEventListener("change", doiCach); });
+  doiCach();
+
+  // 3. Mã ưu đãi: chữ gõ vào tự đổi thành chữ hoa. Nếu khách gõ mã mà quên bấm Áp dụng thì nhắc, chưa cho thanh toán.
+  var oMa = document.getElementById("o-ma");
+  var nhac = document.getElementById("nhac-ma");
+  if (oMa) {
+    oMa.addEventListener("input", function () {
+      oMa.value = oMa.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      nhac.hidden = true;
+    });
+    document.getElementById("nut-tra").addEventListener("click", function (e) {
+      if (oMa.value.trim() !== "") { e.preventDefault(); nhac.hidden = false; oMa.focus(); }
+    });
+  }
+})();
+</script>
+</body>
+</html>

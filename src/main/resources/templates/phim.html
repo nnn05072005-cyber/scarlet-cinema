@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau(${phim.title()})}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('phim')}"></header>
+<main>
+<div class="khung">
+  <nav class="duong-dan so"><a th:href="@{/}">Phim</a><span>/</span><b th:text="${phim.title()}">Tên phim</b></nav>
+  <th:block th:replace="~{fragments/khung :: thongBao}"></th:block>
+
+  <section class="chi-tiet">
+    <div class="poster"><img th:replace="~{fragments/khung :: anh(${phim.posterUrl()}, ${phim.id()}, ${phim.title()}, '')}"></div>
+    <div>
+      <span class="nhan" th:classappend="${phim.statusColor()}" th:text="${phim.statusLabel()}">Đang chiếu</span>
+      <h1 class="td" th:classappend="${phim.sizeClass()}" th:text="${phim.title()}">Tên phim</h1>
+      <p class="goc" th:if="${phim.originalTitle() != null}" th:text="${phim.originalTitle()}">Tên gốc</p>
+      <p class="tom-tat" th:text="${phim.description() != null ? phim.description() : 'Nội dung phim sẽ được cập nhật.'}">Tóm tắt nội dung.</p>
+      <div class="thong-so">
+        <div><span class="so">Thể loại</span><b th:text="${phim.genre()}">Hoạt hình</b></div>
+        <div><span class="so">Thời lượng</span><b th:text="${phim.durationMin() != null ? phim.durationMin() + ' phút' : 'Chưa công bố'}">109 phút</b></div>
+        <div><span class="so">Khởi chiếu</span><b th:text="${@fmt.ngay(phim.releaseDate())}">25.09.2026</b></div>
+        <div><span class="so">Đạo diễn</span><b th:text="${phim.director() != null ? phim.director() : 'Chưa công bố'}">Đạo diễn</b></div>
+      </div>
+      <p class="ghi-chu" th:if="${phim.ageRating() != null}"><b style="color:var(--chu)" th:text="${phim.ageRating()}">K</b> · <th:block th:text="${phim.ratingNote()}">Giải thích độ tuổi.</th:block></p>
+      <!-- Chỉ hiện khi phim có đường dẫn trailer: bấm thì phát ngay trên web -->
+      <button class="nut nut-vien nut-trailer" type="button" th:if="${phim.youtubeId() != null}" th:attr="data-trailer=${phim.youtubeId()},data-ten=${phim.title()}">Xem trailer</button>
+    </div>
+  </section>
+
+  <!-- Lịch chiếu 7 ngày tới của phim. Bấm một ngày để xem các suất của ngày đó. -->
+  <section class="o-khoi lich" id="lich-chieu">
+    <div class="dau">
+      <h2 class="td">Lịch chiếu</h2>
+      <span class="so" th:text="${'Tháng ' + @fmt.thang(ngayChon) + ' · ' + ngayChon.getYear()}">Tháng 10 · 2026</span>
+    </div>
+    <th:block th:if="${coLich}">
+      <div class="cac-ngay">
+        <a class="o-ngay" th:each="d : ${cacNgay}" th:classappend="${d.equals(ngayChon)} ? 'chon'"
+           th:href="@{/phim/{id}(id=${phim.id()}, ngay=${d.toString()})} + '#lich-chieu'">
+          <span class="so" th:text="${@fmt.thuNgan(d)}">Thứ Hai</span><b th:text="${@fmt.so(d)}">05</b>
+        </a>
+      </div>
+      <div class="cac-gio">
+        <a class="gio-chieu" th:each="s : ${cacSuat}" th:href="@{/dat-ve/{id}(id=${s.id()})}">
+          <b th:text="${@fmt.gio(s.startTime())}">19:30</b>
+          <span class="so" th:text="${s.roomName() + ' · ' + @fmt.tien(s.price())}">Phòng 3 · 75.000 đ</span>
+        </a>
+      </div>
+      <p class="ghi-chu" th:if="${#lists.isEmpty(cacSuat)}">Ngày này không còn suất chiếu. Bạn hãy chọn ngày khác.</p>
+      <p class="ghi-chu" th:unless="${#lists.isEmpty(cacSuat)}">Chọn một suất chiếu để sang bước chọn ghế. Cần đăng nhập để đặt vé.</p>
+    </th:block>
+    <p class="ghi-chu" th:unless="${coLich}" style="margin-top:0">Phim chưa có suất chiếu nào trong 7 ngày tới.</p>
+  </section>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+</body>
+</html>

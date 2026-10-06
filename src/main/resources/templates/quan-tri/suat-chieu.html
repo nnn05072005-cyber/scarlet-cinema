@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Quản lý suất chiếu')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('qt-suat')}"></header>
+<main>
+<div class="khung">
+  <div class="dau-trang-con">
+    <div><h1 class="td">Suất chiếu</h1><p>Một phòng không thể có hai suất trùng giờ. Suất đã có người đặt ghế thì không sửa, không xóa được.</p></div>
+    <span class="so" th:text="${soPhong + ' phòng · ' + @fmt.haiSo(#lists.size(dsSuat)) + ' suất ngày ' + @fmt.ngayThang(ngayChon)}">3 phòng · 15 suất ngày 05.10</span>
+  </div>
+  <th:block th:replace="~{fragments/khung :: thongBao}"></th:block>
+
+  <!-- Mẫu nhập dùng chung cho thêm và sửa suất chiếu -->
+  <form class="o-khoi mau-nhap" method="post" th:action="@{/quan-tri/suat-chieu/luu}">
+    <h2 class="td" th:text="${form['id'] == '' ? 'Thêm suất chiếu' : 'Sửa suất chiếu'}">Thêm suất chiếu</h2>
+    <input type="hidden" name="id" th:value="${form['id']}">
+    <div class="luoi-nhap">
+      <label class="truong c4"><span class="so">Phim</span>
+        <select name="phim" required>
+          <option value="">Chọn phim</option>
+          <option th:each="p : ${dsPhim}" th:value="${p.id()}" th:text="${p.title()}" th:selected="${form['phim'] == '' + p.id()}">Tên phim</option>
+        </select>
+      </label>
+      <label class="truong c2"><span class="so">Phòng</span>
+        <select name="phong" required>
+          <option value="">Chọn phòng</option>
+          <option th:each="r : ${dsPhong}" th:value="${r.id()}" th:text="${r.name()}" th:selected="${form['phong'] == '' + r.id()}">Phòng 1</option>
+        </select>
+      </label>
+      <label class="truong c2"><span class="so">Ngày chiếu</span><input type="date" name="ngay" th:value="${form['ngay']}" required></label>
+      <label class="truong c2"><span class="so">Giờ chiếu</span><input type="time" name="gio" th:value="${form['gio']}" required></label>
+      <label class="truong c2"><span class="so">Giá vé (đ)</span><input type="number" name="gia" th:value="${form['gia']}" placeholder="75000" min="10000" max="1000000" step="1000" required></label>
+      <div class="hang-nut">
+        <button class="nut nut-do" type="submit" th:text="${form['id'] == '' ? 'Thêm suất chiếu' : 'Lưu suất chiếu'}">Thêm suất chiếu</button>
+        <a class="nut nut-vien" th:if="${form['id'] != ''}" th:href="@{/quan-tri/suat-chieu(ngay=${ngayChon.toString()})}">Hủy</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Chọn ngày để xem các suất chiếu của ngày đó -->
+  <div class="cac-ngay">
+    <a class="o-ngay" th:each="d : ${cacNgay}" th:classappend="${d.equals(ngayChon)} ? 'chon'" th:href="@{/quan-tri/suat-chieu(ngay=${d.toString()})}">
+      <span class="so" th:text="${@fmt.thuNgan(d)}">Thứ Hai</span><b th:text="${@fmt.so(d)}">05</b>
+    </a>
+  </div>
+
+  <div class="bang-cuon">
+  <table class="bang">
+    <thead><tr><th>Phim</th><th>Phòng</th><th>Ngày</th><th>Giờ</th><th class="phai">Giá vé</th><th class="phai">Ghế đã đặt</th><th class="phai">Thao tác</th></tr></thead>
+    <tbody>
+      <tr th:each="s : ${dsSuat}">
+        <td class="dam" th:text="${s.movieTitle()}">Tên phim</td>
+        <td th:text="${s.roomName()}">Phòng 1</td>
+        <td class="chu-so" th:text="${@fmt.ngay(s.startTime())}">05.10.2026</td>
+        <td class="chu-so dam" th:text="${@fmt.gio(s.startTime())}">19:30</td>
+        <td class="chu-so phai" th:text="${@fmt.tien(s.price())}">75.000 đ</td>
+        <td class="chu-so phai" th:text="${s.sold() + ' / ' + s.totalSeats()}">16 / 80</td>
+        <td><div class="thao-tac">
+          <th:block th:if="${s.sold() == 0}">
+            <a th:href="@{/quan-tri/suat-chieu(sua=${s.id()})}">Sửa</a>
+            <form class="can-xac-nhan" method="post" th:action="@{/quan-tri/suat-chieu/{id}/xoa(id=${s.id()})}">
+              <input type="hidden" name="ngay" th:value="${ngayChon.toString()}">
+              <button class="xoa" type="submit">Xóa</button>
+            </form>
+          </th:block>
+          <span class="mo" th:unless="${s.sold() == 0}">Đã có vé</span>
+        </div></td>
+      </tr>
+      <tr th:if="${#lists.isEmpty(dsSuat)}"><td class="mo" colspan="7">Ngày này chưa có suất chiếu nào.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

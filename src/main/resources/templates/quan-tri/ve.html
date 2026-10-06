@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Vé đã đặt')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('qt-ve')}"></header>
+<main>
+<div class="khung">
+  <div class="dau-trang-con">
+    <div>
+      <h1 class="td">Vé đã đặt</h1>
+      <p th:text="${'Đã thanh toán: ' + tongDon + ' lượt đặt, ' + tongVe + ' vé, doanh thu ' + @fmt.tien(tongTien) + (tongGiam > 0 ? ' (đã trừ ' + @fmt.tien(tongGiam) + ' giảm theo mã ưu đãi)' : '') + '. Mới nhất ở trên.'}">Toàn bộ lượt đặt vé của khách, mới nhất ở trên.</p>
+    </div>
+    <form class="tim-ve" method="get" th:action="@{/quan-tri/ve}">
+      <label class="truong"><span class="so">Tìm vé</span><input name="tim" th:value="${tim}" placeholder="Mã vé hoặc tên khách"></label>
+      <button class="nut nut-vien" type="submit">Tìm</button>
+    </form>
+  </div>
+
+  <div class="bang-cuon">
+  <table class="bang">
+    <thead><tr><th>Mã vé</th><th>Khách hàng</th><th>Phim</th><th>Suất chiếu</th><th>Ghế</th><th class="phai">Tổng tiền</th><th>Thanh toán</th><th class="phai">Đặt lúc</th></tr></thead>
+    <tbody>
+      <tr th:each="v : ${dsVe}">
+        <td class="ma">
+          <a th:if="${v.paid()}" th:href="@{/ve/{ma}(ma=${v.code()})}" th:text="${v.code()}">SC-20261005-0147</a>
+          <th:block th:unless="${v.paid()}" th:text="${v.code()}">SC-20261005-0147</th:block>
+        </td>
+        <td class="dam" th:text="${v.customerName()}">Tên khách</td>
+        <td th:text="${v.movieTitle()}">Tên phim</td>
+        <td class="chu-so" th:text="${@fmt.gio(v.startTime()) + ' · ' + @fmt.ngayThang(v.startTime())}">19:30 · 05.10</td>
+        <td class="chu-so" th:text="${v.seats()}">E4, E5, E6</td>
+        <td class="chu-so phai dam">
+          <th:block th:text="${@fmt.tien(v.totalAmount())}">225.000 đ</th:block>
+          <span class="giam-ma" th:if="${v.discounted()}" th:text="${v.promoCode() + ' −' + @fmt.tien(v.discountAmount())}">SCARLET10 −22.500 đ</span>
+        </td>
+        <td>
+          <span class="nhan xanh" th:if="${v.paid()}">Đã trả</span>
+          <span class="nhan vang" th:unless="${v.paid()}">Chờ trả</span>
+        </td>
+        <td class="chu-so phai mo" th:text="${@fmt.ngayThang(v.createdAt()) + ' ' + @fmt.gio(v.createdAt())}">04.10 09:12</td>
+      </tr>
+      <tr th:if="${#lists.isEmpty(dsVe)}"><td class="mo" colspan="8">Không tìm thấy lượt đặt vé nào.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="ghi-chu" th:if="${#lists.size(dsVe) == gioiHan}" th:text="${'Chỉ hiện ' + gioiHan + ' lượt đặt mới nhất. Dùng ô tìm để tìm lượt cũ hơn.'}">Chỉ hiện 50 lượt đặt mới nhất.</p>
+
+  <div class="dau-muc" style="margin-top:60px">
+    <h2 class="td" style="font-size:38px">Doanh thu theo phim<sup>ĐÃ THANH TOÁN</sup></h2>
+  </div>
+  <div class="bang-cuon">
+  <table class="bang">
+    <thead><tr><th>Phim</th><th class="phai">Số vé</th><th class="phai">Doanh thu</th></tr></thead>
+    <tbody>
+      <tr th:each="d : ${doanhThu}">
+        <td class="dam" th:text="${d.title()}">Tên phim</td>
+        <td class="chu-so phai" th:text="${d.tickets()}">72</td>
+        <td class="chu-so phai dam" th:text="${@fmt.tien(d.revenue())}">5.400.000 đ</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="dau-muc" style="margin-top:60px">
+    <h2 class="td" style="font-size:38px">Mã ưu đãi<sup>ĐÃ THANH TOÁN</sup></h2>
+  </div>
+  <div class="bang-cuon">
+  <table class="bang">
+    <thead><tr><th>Mã</th><th>Chương trình</th><th class="phai">Hạn dùng</th><th class="phai">Đã dùng</th><th class="phai">Tiền đã giảm</th><th>Trạng thái</th></tr></thead>
+    <tbody>
+      <tr th:each="m : ${dsMa}">
+        <td class="ma" th:text="${m.code()}">SCARLET10</td>
+        <td class="dam" th:text="${m.title()}">Giảm 10% mọi đơn</td>
+        <td class="chu-so phai" th:text="${@fmt.ngay(m.endDate())}">04.12.2026</td>
+        <td class="chu-so phai" th:text="${m.usageText()}">5 lượt</td>
+        <td class="chu-so phai dam" th:text="${@fmt.tien(m.totalDiscount())}">88.500 đ</td>
+        <td>
+          <span class="nhan xanh" th:if="${m.usable(homNay)}">Đang dùng được</span>
+          <span class="nhan vang" th:unless="${m.usable(homNay)}" th:text="${!m.active() ? 'Đã tắt' : (homNay.isAfter(m.endDate()) ? 'Hết hạn' : 'Hết lượt')}">Hết hạn</span>
+        </td>
+      </tr>
+      <tr th:if="${#lists.isEmpty(dsMa)}"><td class="mo" colspan="6">Chưa có mã ưu đãi nào.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+</body>
+</html>

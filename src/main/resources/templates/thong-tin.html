@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Thông tin')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('')}"></header>
+<main>
+<div class="khung">
+  <nav class="duong-dan so"><a th:href="@{/}">Phim</a><span>/</span><b>Thông tin</b></nav>
+  <div class="thong-tin">
+    <!-- Mục lục, đứng yên bên trái khi cuộn trang -->
+    <nav class="muc-luc" aria-label="Mục lục">
+      <span class="so">Thông tin</span>
+      <a href="#gioi-thieu">Giới thiệu</a>
+      <a href="#phong-chieu">Phòng chiếu</a>
+      <a href="#dat-ve">Quy định đặt vé</a>
+      <a href="#thanh-toan">Thanh toán</a>
+      <a href="#do-tuoi">Phân loại độ tuổi</a>
+      <a href="#hoi-dap">Hỏi và đáp</a>
+      <a href="#bao-mat">Chính sách bảo mật</a>
+      <a href="#ho-tro">Hỗ trợ</a>
+    </nav>
+
+    <div class="noi-dung">
+      <section id="gioi-thieu">
+        <h1 class="td">Scarlet Cinema</h1>
+        <p class="mo-bai">Rạp chiếu phim đặt vé trực tuyến. Bạn xem lịch chiếu, chọn đúng ghế mình muốn trên sơ đồ phòng và thanh toán ngay trên web. Vé có mã QR nằm sẵn trong tài khoản, đến rạp chỉ cần đưa mã.</p>
+        <div class="so-lieu">
+          <div><b th:text="${@fmt.haiSo(#lists.size(dsPhong))}">03</b><span class="so">Phòng chiếu</span></div>
+          <div><b th:text="${tongGhe}">240</b><span class="so">Ghế</span></div>
+          <div><b>07</b><span class="so">Ngày lịch chiếu mở sẵn</span></div>
+          <div><b th:text="${@fmt.haiSo(phutGiu)}">10</b><span class="so">Phút giữ ghế</span></div>
+        </div>
+      </section>
+
+      <section id="phong-chieu">
+        <h2 class="td">Phòng chiếu</h2>
+        <p>Ghế được gọi theo hàng (A, B, C...) và số ghế trong hàng, ví dụ E4 là ghế số 4 của hàng E. Hàng A gần màn hình nhất.</p>
+        <div class="bang-cuon">
+          <table class="bang">
+            <thead><tr><th>Phòng</th><th>Sơ đồ ghế</th><th class="phai">Số ghế</th></tr></thead>
+            <tbody>
+              <tr th:each="r : ${dsPhong}">
+                <td class="dam" th:text="${r.name()}">Phòng 1</td>
+                <td class="mo" th:text="${r.seatRows() + ' hàng, mỗi hàng ' + r.seatsPerRow() + ' ghế'}">8 hàng, mỗi hàng 10 ghế</td>
+                <td class="phai chu-so" th:text="${r.totalSeats()}">80</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="dat-ve">
+        <h2 class="td">Quy định đặt vé</h2>
+        <ol class="buoc">
+          <li>Bạn cần đăng nhập để đặt vé. Chưa có tài khoản thì đăng ký bằng họ tên, email và mật khẩu.</li>
+          <li th:text="${'Mỗi lần đặt tối đa ' + toiDa + ' ghế của cùng một suất chiếu.'}">Mỗi lần đặt tối đa 8 ghế của cùng một suất chiếu.</li>
+          <li th:text="${'Sau khi bấm &quot;Tiếp tục thanh toán&quot;, ghế được giữ cho bạn trong ' + phutGiu + ' phút. Trong lúc đó người khác không chọn được các ghế này.'}">Ghế được giữ cho bạn trong 10 phút.</li>
+          <li th:text="${'Quá ' + phutGiu + ' phút chưa thanh toán, hoặc bạn bấm &quot;Hủy đơn&quot;, thì đơn bị hủy và ghế được mở bán lại.'}">Quá 10 phút chưa thanh toán thì đơn bị hủy.</li>
+          <li>Có mã ưu đãi thì nhập ở bước thanh toán, trước khi bấm nút Thanh toán. Mỗi đơn dùng một mã; mỗi tài khoản dùng mỗi mã một lần.</li>
+          <li>Thanh toán xong bạn mới nhận được vé có mã QR. Vé nằm trong mục "Vé của tôi".</li>
+          <li>Suất chiếu đã bắt đầu thì không đặt vé được nữa.</li>
+          <li>Vé đã thanh toán không đổi suất, đổi ghế hay hủy trên web được.</li>
+          <li>Đến rạp, bạn đưa mã QR trên vé cho nhân viên soát vé. Không cần in vé.</li>
+        </ol>
+      </section>
+
+      <section id="thanh-toan">
+        <h2 class="td">Thanh toán</h2>
+        <p>Có ba cách trả: chuyển khoản bằng mã QR, thẻ ngân hàng và ví điện tử. Tổng tiền bằng giá vé của suất chiếu nhân với số ghế; giá vé của từng suất hiện ngay ở trang chọn ghế.</p>
+        <p>Mã ưu đãi giảm theo phần trăm hoặc giảm một số tiền cố định. Mỗi mã có hạn dùng, có mã cần đơn đạt mức tiền tối thiểu hoặc chỉ có một số lượt nhất định. Các mã đang dùng được nằm ở mục <a class="lien-ket" th:href="@{/} + '#uu-dai'">Ưu đãi</a> trên trang chủ. Đơn bị hủy thì lượt dùng mã được trả lại.</p>
+        <p>Trang web không hỏi và không lưu số thẻ, số tài khoản hay mật khẩu ngân hàng của bạn.</p>
+        <p class="thong-bao nhe">Chế độ thử nghiệm: bước thanh toán trên web hiện không kết nối ngân hàng và không trừ tiền thật.</p>
+      </section>
+
+      <section id="do-tuoi">
+        <h2 class="td">Phân loại độ tuổi</h2>
+        <p>Mỗi phim có một nhãn độ tuổi ghi cạnh tên phim và trên vé. Phim sắp chiếu chưa có nhãn thì ghi "Chưa phân loại".</p>
+        <dl class="do-tuoi">
+          <th:block th:each="muc : ${doTuoi}"><dt th:text="${muc.key}">T13</dt><dd th:text="${muc.value}">Phim dành cho người xem từ đủ 13 tuổi trở lên.</dd></th:block>
+        </dl>
+      </section>
+
+      <section id="hoi-dap">
+        <h2 class="td">Hỏi và đáp</h2>
+        <details class="hoi" open>
+          <summary>Tôi đã thanh toán, vé của tôi ở đâu?</summary>
+          <p>Bạn vào "Vé của tôi" ở góc trên bên phải. Mỗi đơn đã thanh toán có nút "Xem vé" để mở vé có mã QR.</p>
+        </details>
+        <details class="hoi">
+          <summary>Tôi chưa kịp thanh toán trong thời gian giữ ghế thì sao?</summary>
+          <p>Đơn tự hủy và ghế được mở bán lại. Bạn chọn lại ghế rồi đặt lại như bình thường.</p>
+        </details>
+        <details class="hoi">
+          <summary>Tôi đang đặt dở thì thoát ra, có vào lại được không?</summary>
+          <p>Được, miễn là còn trong thời gian giữ ghế. Bạn vào "Vé của tôi": đơn đang ghi "Chờ thanh toán" có nút "Thanh toán" để trả tiếp.</p>
+        </details>
+        <details class="hoi">
+          <summary>Vì sao web báo ghế tôi chọn đã có người đặt?</summary>
+          <p>Trong lúc bạn chọn, một người khác đã giữ hoặc mua ghế đó trước. Mỗi ghế của một suất chiếu chỉ bán một lần, nên bạn chọn ghế khác rồi tiếp tục.</p>
+        </details>
+        <details class="hoi">
+          <summary>Tôi đặt vé cho nhiều người được không?</summary>
+          <p th:text="${'Được. Mỗi lần đặt tối đa ' + toiDa + ' ghế; cần nhiều hơn thì bạn đặt thêm một lần nữa.'}">Được. Mỗi lần đặt tối đa 8 ghế.</p>
+        </details>
+        <details class="hoi">
+          <summary>Tôi có cần in vé không?</summary>
+          <p>Không. Bạn mở vé trên điện thoại và đưa mã QR cho nhân viên soát vé.</p>
+        </details>
+      </section>
+
+      <section id="bao-mat">
+        <h2 class="td">Chính sách bảo mật</h2>
+        <ul class="gach">
+          <li>Trang web lưu họ tên, email và các đơn đặt vé của bạn để bạn xem lại vé và để rạp soát vé.</li>
+          <li>Mật khẩu chỉ được lưu ở dạng đã băm. Không ai đọc lại được mật khẩu gốc, kể cả quản trị viên.</li>
+          <li>Trang web không lưu số thẻ, số tài khoản hay thông tin ngân hàng.</li>
+          <li>Phiên đăng nhập dùng một cookie và tự hết hạn sau 60 phút không dùng. Nếu dùng máy chung, bạn nhớ bấm "Đăng xuất".</li>
+          <li>Quản trị viên của rạp xem được danh sách vé đã đặt kèm tên khách để tra cứu khi soát vé.</li>
+          <li>Ảnh poster phim được tải từ máy chủ ảnh bên ngoài.</li>
+        </ul>
+      </section>
+
+      <section id="ho-tro">
+        <h2 class="td">Hỗ trợ</h2>
+        <p>Cần hỗ trợ về vé đã đặt, bạn mang mã đặt vé đến quầy vé của rạp. Mã đặt vé có dạng <b class="ma-mau">SC-20261005-0174</b>, in trên vé và nằm trong mục "Vé của tôi"; nhân viên tra theo mã này hoặc theo tên của bạn.</p>
+        <div class="ct-nut"><a class="nut nut-do" th:href="@{/} + '#dang-chieu'">Xem phim đang chiếu</a><a class="nut nut-vien" th:href="@{/ve-cua-toi}">Vé của tôi</a></div>
+      </section>
+    </div>
+  </div>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+</body>
+</html>

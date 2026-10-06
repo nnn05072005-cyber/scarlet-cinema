@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+  <rect width="400" height="600" fill="#1e1818"/>
+  <rect x="24" y="24" width="352" height="552" fill="none" stroke="#2e2525" stroke-width="2"/>
+  <circle cx="200" cy="262" r="46" fill="none" stroke="#5b4d4d" stroke-width="4"/>
+  <path d="M186 240v44l36-22z" fill="#5b4d4d"/>
+  <text x="200" y="356" fill="#a3978b" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="3" text-anchor="middle">SCARLET CINEMA</text>
+</svg>

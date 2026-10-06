@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Vé của tôi')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('ve')}"></header>
+<main>
+<div class="khung">
+  <div class="dau-trang-con">
+    <div><h1 class="td">Vé của tôi</h1><p>Các lần đặt vé của bạn, mới nhất ở trên. Vé có mã QR sau khi thanh toán.</p></div>
+    <span class="so" th:text="${@fmt.haiSo(#lists.size(dsVe)) + ' lần đặt · ' + @fmt.haiSo(tongVe) + ' vé'}">04 lần đặt · 08 vé</span>
+  </div>
+
+  <th:block th:replace="~{fragments/khung :: thongBao}"></th:block>
+
+  <div class="dong-ve" th:each="v : ${dsVe}" th:classappend="${!v.upcoming()} ? 'cu'">
+    <span class="ngay-lon"><th:block th:text="${@fmt.so(v.startTime())}">05</th:block><span th:text="${'THÁNG ' + @fmt.thang(v.startTime())}">THÁNG 10</span></span>
+    <img th:replace="~{fragments/khung :: anh(${v.posterUrl()}, ${v.movieId()}, ${v.movieTitle()}, '')}">
+    <span>
+      <h3 class="td" th:text="${v.movieTitle()}">Tên phim</h3>
+      <span class="so" th:text="${@fmt.gio(v.startTime()) + ' · ' + v.roomName() + ' · Ghế ' + v.seats()}">19:30 · Phòng 3 · Ghế E4, E5, E6</span>
+    </span>
+    <span class="ma" th:text="${v.code()}">SC-20261005-0147</span>
+    <span class="tien" th:text="${@fmt.tien(v.totalAmount())}">225.000 đ</span>
+    <!-- Đơn chưa thanh toán: chưa có vé, chỉ có đường dẫn sang trang thanh toán -->
+    <th:block th:if="${v.pending()}">
+      <span class="nhan do">Chờ thanh toán</span>
+      <a class="mui-ten do" th:href="@{/thanh-toan/{ma}(ma=${v.code()})}">Thanh toán</a>
+    </th:block>
+    <th:block th:if="${v.paid()}">
+      <span class="nhan" th:classappend="${v.upcoming()} ? 'vang' : 'xam'" th:text="${v.upcoming()} ? 'Sắp chiếu' : 'Đã chiếu'">Sắp chiếu</span>
+      <a class="mui-ten" th:href="@{/ve/{ma}(ma=${v.code()})}">Xem vé</a>
+    </th:block>
+  </div>
+  <p class="trong" th:if="${#lists.isEmpty(dsVe)}">Bạn chưa đặt vé nào. <a class="lien-ket" th:href="@{/}">Xem phim đang chiếu</a></p>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+</body>
+</html>

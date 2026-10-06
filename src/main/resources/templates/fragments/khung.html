@@ -1,0 +1,302 @@
+<!doctype html>
+<!-- Các mảnh dùng chung cho mọi trang: phần đầu, thanh điều hướng, chân trang, ảnh poster, thẻ phim đang chiếu, thẻ phim sắp chiếu, thông báo, nền vũ trụ -->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:fragment="dau(tieuDe)">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tên rạp đứng trước để thẻ trình duyệt hẹp vẫn đọc được tên; trang chủ (tieuDe để trống) dùng câu giới thiệu ngắn -->
+  <title th:text="${#strings.isEmpty(tieuDe)} ? 'Scarlet Cinema - Đặt vé xem phim' : 'Scarlet Cinema | ' + ${tieuDe}">Scarlet Cinema</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/img/logo-bieu-tuong.svg}">
+  <link rel="alternate icon" th:href="@{/favicon.ico}">
+  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+  <!-- Tham số v đổi mỗi lần web khởi động lại, để trình duyệt luôn tải bản CSS mới -->
+  <link rel="stylesheet" th:href="@{/css/style.css(v=${@fmt.phienBan()})}">
+  <script>
+    // Ảnh poster lấy qua đường dẫn. Nếu không tải được thì thử ảnh dự phòng, cuối cùng dùng ảnh trống.
+    function anhLoi(anh) {
+      var duPhong = anh.getAttribute("data-du-phong");
+      anh.removeAttribute("data-du-phong");
+      if (duPhong) { anh.src = duPhong; return; }
+      anh.onerror = null;
+      anh.src = "/img/poster-trong.svg";
+    }
+    // Nền vũ trụ trôi theo khi cuộn trang. Mỗi khung hình, nền tiến một phần quãng đường tới vị trí cuộn thật (trôi theo, trễ rất nhẹ)
+    // nên chuyển động liền mạch dù trang cuộn theo từng nấc con lăn chuột. Chỉ đổi thuộc tính transform của ba lớp
+    // (sao Hỏa, sao nền, sao băng): trình duyệt dời lớp ảnh đã vẽ sẵn chứ không phải vẽ lại nền ở từng khung hình.
+    (function () {
+      var hanhTinh, sao, bang, dich = 0, hien = 0, dangChay = false, truoc = 0;
+      function dat(c) {
+        // Sao Hỏa nhô lên tối đa 230 điểm ảnh và trôi sang trái tối đa 60; ô sao rộng 1024 nên dời quá 1024 thì quay vòng
+        if (hanhTinh) { hanhTinh.style.transform = "translate3d(" + Math.max(c * -0.03, -60).toFixed(2) + "px," + Math.max(c * -0.13, -230).toFixed(2) + "px,0)"; }
+        if (sao) { sao.style.transform = "translate3d(0," + (-((c * 0.05) % 1024)).toFixed(2) + "px,0)"; }
+        if (bang) { bang.style.transform = "translate3d(0," + (c * -0.02).toFixed(2) + "px,0)"; }
+      }
+      function buoc(luc) {
+        var khoang = Math.min(64, Math.max(0, luc - truoc));
+        truoc = luc;
+        hien += (dich - hien) * (1 - Math.exp(-khoang / 110));
+        if (Math.abs(dich - hien) < 0.4) { hien = dich; dangChay = false; }
+        dat(hien);
+        if (dangChay) { requestAnimationFrame(buoc); }
+      }
+      function cuon() {
+        dich = window.scrollY || 0;
+        if (!dangChay) { dangChay = true; truoc = performance.now(); requestAnimationFrame(buoc); }
+      }
+      document.addEventListener("DOMContentLoaded", function () {
+        hanhTinh = document.querySelector(".vt-hanh-tinh");
+        sao = document.querySelector(".vt-sao");
+        bang = document.querySelector(".vt-bang");
+        // Lúc mới mở trang: đặt nền đúng chỗ ngay, không trôi từ đầu trang xuống
+        dich = hien = window.scrollY || 0;
+        dat(hien);
+        window.addEventListener("scroll", cuon, { passive: true });
+      });
+    })();
+    // Ảnh nền của phim nổi bật. Nếu không tải được thì hiện poster đặt nghiêng bên phải; hết ảnh để thử thì ẩn đi.
+    function anhNenLoi(anh) {
+      var ds = (anh.getAttribute("data-du-phong") || "").split(" ").filter(Boolean);
+      anh.className = "anh-nen du-phong";
+      if (!ds.length) { anh.onerror = null; anh.style.display = "none"; return; }
+      anh.setAttribute("data-du-phong", ds.slice(1).join(" "));
+      anh.src = ds.shift();
+    }
+  </script>
+</head>
+
+<body>
+
+<!-- Nền vũ trụ dùng chung cho mọi trang, nằm cố định SAU toàn bộ nội dung: sao thưa, sao băng vụt qua, quầng sáng, lưới kẻ mờ,
+     quỹ đạo có vệ tinh, và sao Hỏa ló lên ở góc dưới bên phải với mép phát sáng tỏa ra. Cuộn trang thì nền trôi theo.
+     Ảnh sao-hoa.webp và sao.png do dự án tự vẽ bằng tính toán. -->
+<div class="vu-tru" th:fragment="nen" aria-hidden="true">
+  <div class="vt-sao"></div>
+  <div class="vt-may"></div>
+  <div class="vt-luoi"></div>
+  <div class="vt-bang"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="vt-hanh-tinh">
+    <div class="vt-song"></div><div class="vt-song"></div>
+    <div class="vt-quang"></div>
+    <svg class="vt-quy-dao" viewBox="0 0 1500 1500" fill="none">
+      <g transform="rotate(-16 750 750)">
+        <ellipse cx="750" cy="750" rx="735" ry="235" stroke="rgba(244,238,226,.13)"/>
+        <ellipse cx="750" cy="750" rx="745" ry="300" stroke="rgba(215,38,46,.30)"/>
+        <ellipse cx="750" cy="750" rx="748" ry="380" stroke="rgba(244,238,226,.10)" stroke-dasharray="2 10"/>
+      </g>
+    </svg>
+    <div class="vt-ve-tinh"><i></i></div><div class="vt-ve-tinh cham-2"><i></i></div>
+    <img th:src="@{/img/sao-hoa.webp(v=${@fmt.phienBan()})}" alt="">
+    <div class="vt-loe"></div>
+  </div>
+  <span class="vt-toa-do">Mars · 04.5°S 137.4°E</span>
+</div>
+
+<!-- Thanh điều hướng. muc: mục đang xem (phim, ve, qt-phim, qt-suat, qt-ve hoặc để trống) -->
+<header class="dau-trang" th:fragment="thanh(muc)"><div class="khung">
+  <a class="logo" th:href="@{/}"><img th:src="@{/img/logo.svg}" width="139" height="40" alt="Scarlet Cinema"></a>
+
+  <th:block th:if="${#strings.startsWith(muc, 'qt-')}">
+    <span class="huy-hieu">Quản trị</span>
+    <nav class="menu">
+      <a th:classappend="${muc == 'qt-phim'} ? 'dang-xem'" th:href="@{/quan-tri/phim}">Phim</a>
+      <a th:classappend="${muc == 'qt-suat'} ? 'dang-xem'" th:href="@{/quan-tri/suat-chieu}">Suất chiếu</a>
+      <a th:classappend="${muc == 'qt-ve'} ? 'dang-xem'" th:href="@{/quan-tri/ve}">Vé đã đặt</a>
+    </nav>
+  </th:block>
+  <nav class="menu" th:unless="${#strings.startsWith(muc, 'qt-')}">
+    <a th:classappend="${muc == 'phim'} ? 'dang-xem'" th:href="@{/}">Phim</a>
+    <a th:href="@{/} + '#dang-chieu'">Lịch chiếu</a>
+    <a th:href="@{/} + '#uu-dai'">Ưu đãi</a>
+  </nav>
+
+  <div class="tai-khoan">
+    <th:block th:if="${nguoiDung == null}">
+      <a class="lien-ket" th:href="@{/dang-nhap}">Đăng nhập</a>
+      <a class="nut nut-do nut-nho" th:href="@{/dang-ky}">Đăng ký</a>
+    </th:block>
+    <th:block th:if="${nguoiDung != null}">
+      <span class="ten" th:unless="${nguoiDung.admin()}">Xin chào, <b th:text="${nguoiDung.shortName()}">Minh Anh</b></span>
+      <span class="ten" th:if="${nguoiDung.admin()}"><b th:text="${nguoiDung.fullName()}">Quản trị viên</b></span>
+      <a class="lien-ket" th:if="${nguoiDung.admin() and !#strings.startsWith(muc, 'qt-')}" th:href="@{/quan-tri/phim}">Quản trị</a>
+      <a class="lien-ket" th:if="${nguoiDung.admin() and #strings.startsWith(muc, 'qt-')}" th:href="@{/}">Xem trang phim</a>
+      <a class="lien-ket" th:unless="${nguoiDung.admin()}" th:href="@{/ve-cua-toi}">Vé của tôi</a>
+      <form class="dang-xuat" method="post" th:action="@{/dang-xuat}"><button class="lien-ket" type="submit">Đăng xuất</button></form>
+    </th:block>
+  </div>
+</div></header>
+
+<!-- Thông báo sau một thao tác: loi (màu đỏ) hoặc thongBao (màu xanh) -->
+<th:block th:fragment="thongBao">
+  <p class="thong-bao" th:if="${loi != null}" th:text="${loi}">Có lỗi</p>
+  <p class="thong-bao tot" th:if="${thongBao != null}" th:text="${thongBao}">Đã lưu</p>
+</th:block>
+
+<!-- Ảnh poster của một phim. url: đường dẫn ảnh, ma: mã phim, ten: tên phim, lop: lớp CSS -->
+<img th:fragment="anh(url, ma, ten, lop)" th:class="${lop}" th:src="${url != null ? url : '/posters/p' + ma + '.jpg'}"
+     th:attr="data-du-phong=${url != null ? '/posters/p' + ma + '.jpg' : null}"
+     referrerpolicy="no-referrer" loading="lazy" onerror="anhLoi(this)" th:alt="'Poster phim ' + ${ten}">
+
+<!-- Nút "Xem trailer" của một phim.
+     Phim có đường dẫn trailer (cột trailer_url): bấm thì phát video ngay trên web, trong khung ở cuối trang (xem fragment chan).
+     Phim chưa có: mở kết quả tìm trailer trên YouTube ở thẻ mới. -->
+<th:block th:fragment="nutTrailer(p)">
+  <button class="trailer" type="button" th:if="${p.youtubeId() != null}" th:attr="data-trailer=${p.youtubeId()},data-ten=${p.title()}">Xem trailer</button>
+  <a class="trailer" th:if="${p.youtubeId() == null}" target="_blank" rel="noopener" th:href="@{https://www.youtube.com/results(search_query=${p.title() + ' trailer'})}">Xem trailer</a>
+</th:block>
+
+<!-- Thẻ của một phim sắp chiếu: poster có nhãn độ tuổi, ngày khởi chiếu, tên phim, hai nút.
+     p: phim; chiTiet: true thì hiện thêm dòng thể loại (dùng ở trang liệt kê phim sắp chiếu) -->
+<article class="the-sap" th:fragment="theSap(p, chiTiet)">
+  <a class="poster" th:href="@{/phim/{id}(id=${p.id()})}">
+    <img th:replace="~{fragments/khung :: anh(${p.posterUrl()}, ${p.id()}, ${p.title()}, '')}">
+    <span class="nhan-tuoi" th:classappend="${p.ageRating() == null} ? 'chua'" th:text="${p.ageRating() != null ? p.ageRating() : 'Chưa phân loại'}">T18</span>
+  </a>
+  <p class="ngay-chieu">Khởi chiếu: <b th:text="${@fmt.ngay(p.releaseDate())}">09.10.2026</b></p>
+  <h3 class="td"><a th:href="@{/phim/{id}(id=${p.id()})}" th:text="${p.title()}">Tên phim</a></h3>
+  <p class="the-loai so" th:if="${chiTiet}" th:text="${p.genre()}">Hài, bí ẩn</p>
+  <div class="hang-nut">
+    <th:block th:replace="~{fragments/khung :: nutTrailer(${p})}"></th:block>
+    <a class="nut nut-do nut-nho" th:href="@{/phim/{id}(id=${p.id()})}">Tìm hiểu thêm</a>
+  </div>
+</article>
+
+<!-- Thẻ của một phim đang chiếu, cùng kiểu chữ với thẻ phim sắp chiếu: poster có số thứ tự, dòng thông tin, tên phim, hai nút.
+     p: phim; thuTu: số thứ tự trong lưới -->
+<article class="phim the-sap" th:fragment="theDangChieu(p, thuTu)">
+  <a class="poster" th:href="@{/phim/{id}(id=${p.id()})}">
+    <img th:replace="~{fragments/khung :: anh(${p.posterUrl()}, ${p.id()}, ${p.title()}, '')}">
+    <span class="thu-tu" th:text="${@fmt.haiSo(thuTu)}">01</span>
+  </a>
+  <p class="ngay-chieu" th:text="${p.info()}">K · 109 phút · Hoạt hình</p>
+  <h3 class="td"><a th:href="@{/phim/{id}(id=${p.id()})}" th:text="${p.title()}">Tên phim</a></h3>
+  <div class="hang-nut">
+    <th:block th:replace="~{fragments/khung :: nutTrailer(${p})}"></th:block>
+    <a class="nut nut-do nut-nho" th:href="@{/phim/{id}(id=${p.id()})} + '#lich-chieu'">Đặt vé</a>
+  </div>
+</article>
+
+<!-- Chân trang: logo, các nhóm liên kết, chú thích phân loại độ tuổi, dòng bản quyền -->
+<footer class="chan-trang" th:fragment="chan"><div class="khung">
+  <div class="ct-luoi">
+    <div class="ct-hieu">
+      <a class="logo" th:href="@{/}"><img th:src="@{/img/logo.svg}" width="139" height="40" alt="Scarlet Cinema"></a>
+      <p>Chọn phim, chọn ghế và thanh toán ngay trên web. Đến rạp chỉ cần đưa mã QR trên vé.</p>
+      <div class="ct-nut">
+        <a class="nut nut-do" th:href="@{/} + '#dat-nhanh'">Đặt vé</a>
+        <a class="nut nut-vien" th:href="@{/} + '#dang-chieu'">Lịch chiếu</a>
+      </div>
+    </div>
+    <nav class="ct-cot" aria-label="Tài khoản">
+      <h3>Tài khoản</h3>
+      <th:block th:if="${nguoiDung == null}">
+        <a th:href="@{/dang-nhap}">Đăng nhập</a>
+        <a th:href="@{/dang-ky}">Đăng ký</a>
+        <a th:href="@{/ve-cua-toi}">Vé của tôi</a>
+      </th:block>
+      <th:block th:if="${nguoiDung != null}">
+        <a th:unless="${nguoiDung.admin()}" th:href="@{/ve-cua-toi}">Vé của tôi</a>
+        <a th:if="${nguoiDung.admin()}" th:href="@{/quan-tri/phim}">Trang quản trị</a>
+        <a th:if="${nguoiDung.admin()}" th:href="@{/quan-tri/ve}">Vé đã đặt</a>
+        <form method="post" th:action="@{/dang-xuat}"><button type="submit">Đăng xuất</button></form>
+      </th:block>
+    </nav>
+    <nav class="ct-cot" aria-label="Xem phim">
+      <h3>Xem phim</h3>
+      <a th:href="@{/} + '#dang-chieu'">Phim đang chiếu</a>
+      <a th:href="@{/phim-sap-chieu}">Phim sắp chiếu</a>
+      <a th:href="@{/} + '#dat-nhanh'">Đặt vé nhanh</a>
+      <a th:href="@{/} + '#uu-dai'">Ưu đãi</a>
+    </nav>
+    <nav class="ct-cot" aria-label="Scarlet Cinema">
+      <h3>Scarlet Cinema</h3>
+      <a th:href="@{/thong-tin} + '#gioi-thieu'">Giới thiệu</a>
+      <a th:href="@{/thong-tin} + '#phong-chieu'">Phòng chiếu</a>
+      <a th:href="@{/thong-tin} + '#do-tuoi'">Phân loại độ tuổi</a>
+      <a th:href="@{/thong-tin} + '#ho-tro'">Hỗ trợ</a>
+    </nav>
+    <nav class="ct-cot" aria-label="Hướng dẫn">
+      <h3>Hướng dẫn</h3>
+      <a th:href="@{/thong-tin} + '#dat-ve'">Quy định đặt vé</a>
+      <a th:href="@{/thong-tin} + '#thanh-toan'">Thanh toán</a>
+      <a th:href="@{/thong-tin} + '#hoi-dap'">Hỏi và đáp</a>
+      <a th:href="@{/thong-tin} + '#bao-mat'">Chính sách bảo mật</a>
+    </nav>
+  </div>
+  <div class="ct-do-tuoi">
+    <span class="so">Phân loại độ tuổi</span>
+    <span><b>P</b>Mọi độ tuổi</span>
+    <span><b>K</b>Dưới 13 tuổi xem cùng cha mẹ hoặc người giám hộ</span>
+    <span><b>T13</b>Từ đủ 13 tuổi</span>
+    <span><b>T16</b>Từ đủ 16 tuổi</span>
+    <span><b>T18</b>Từ đủ 18 tuổi</span>
+  </div>
+  <div class="ct-day">
+    <div class="lon">SCARLET CINEMA</div>
+    <div class="phai">
+      <div class="lk">
+        <a th:href="@{/thong-tin} + '#bao-mat'">Chính sách bảo mật</a><a th:href="@{/thong-tin} + '#dat-ve'">Quy định đặt vé</a><a th:href="@{/thong-tin} + '#hoi-dap'">Hỏi và đáp</a>
+      </div>
+      <div class="so">© 2026 Scarlet Cinema</div>
+    </div>
+  </div>
+</div>
+
+<!-- Khung phát trailer, dùng chung cho mọi trang. Bình thường ẩn; bấm một nút "Xem trailer" có mã video thì hiện ra
+     và phát video YouTube ngay trên web. Đóng bằng dấu ×, phím Esc hoặc bấm ra ngoài khung. -->
+<div class="khung-trailer" id="khung-trailer" hidden>
+  <div class="kt-hop" role="dialog" aria-modal="true" aria-labelledby="kt-ten">
+    <div class="kt-dau">
+      <b class="td" id="kt-ten">Tên phim</b>
+      <button class="kt-dong" type="button" id="kt-dong" aria-label="Đóng trailer">&times;</button>
+    </div>
+    <div class="kt-video" id="kt-video"></div>
+    <a class="kt-ngoai" id="kt-ngoai" target="_blank" rel="noopener">Video không phát được? Mở trên YouTube</a>
+  </div>
+</div>
+<script>
+(function () {
+  var khung = document.getElementById("khung-trailer");
+  var video = document.getElementById("kt-video");
+  var nutTruoc = null;   // nút vừa bấm, để trả con trỏ bàn phím về đó khi đóng
+
+  function mo(nut) {
+    var ma = nut.getAttribute("data-trailer");
+    if (!/^[A-Za-z0-9_-]{11}$/.test(ma)) { return; }
+    nutTruoc = nut;
+    document.getElementById("kt-ten").textContent = nut.getAttribute("data-ten") || "Trailer";
+    document.getElementById("kt-ngoai").href = "https://www.youtube.com/watch?v=" + ma;
+    // Tạo khung video lúc mở (không tạo sẵn) để trang tải nhanh và video chỉ chạy khi người dùng muốn xem
+    var f = document.createElement("iframe");
+    f.src = "https://www.youtube-nocookie.com/embed/" + ma + "?autoplay=1&rel=0";
+    f.title = "Trailer " + (nut.getAttribute("data-ten") || "");
+    f.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    f.allowFullscreen = true;
+    f.referrerPolicy = "strict-origin-when-cross-origin";
+    video.innerHTML = "";
+    video.appendChild(f);
+    khung.hidden = false;
+    document.body.style.overflow = "hidden";
+    document.getElementById("kt-dong").focus();
+  }
+
+  function dong() {
+    if (khung.hidden) { return; }
+    video.innerHTML = "";          // gỡ khung video ra thì video dừng hẳn, không còn tiếng
+    khung.hidden = true;
+    document.body.style.overflow = "";
+    if (nutTruoc) { nutTruoc.focus(); }
+  }
+
+  document.addEventListener("click", function (e) {
+    var nut = e.target.closest ? e.target.closest("[data-trailer]") : null;
+    if (nut) { e.preventDefault(); mo(nut); return; }
+    if (e.target === khung || e.target.id === "kt-dong") { dong(); }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { dong(); } });
+})();
+</script>
+</footer>
+
+</body>
+</html>

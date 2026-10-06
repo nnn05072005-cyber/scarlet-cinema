@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Quản lý phim')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('qt-phim')}"></header>
+<main>
+<div class="khung">
+  <div class="dau-trang-con">
+    <div><h1 class="td">Quản lý phim</h1><p th:text="${soDangChieu + ' phim đang chiếu, ' + soSapChieu + ' phim sắp chiếu.'}">8 phim đang chiếu, 4 phim sắp chiếu.</p></div>
+    <a class="nut nut-do" href="#them-phim">+ Thêm phim</a>
+  </div>
+  <th:block th:replace="~{fragments/khung :: thongBao}"></th:block>
+
+  <div class="bang-cuon">
+  <table class="bang">
+    <thead><tr><th>#</th><th>Phim</th><th>Thể loại</th><th>Thời lượng</th><th>Độ tuổi</th><th>Khởi chiếu</th><th>Trạng thái</th><th class="phai">Thao tác</th></tr></thead>
+    <tbody>
+      <tr th:each="p, dem : ${dsPhim}">
+        <td class="chu-so mo" th:text="${@fmt.haiSo(dem.count)}">01</td>
+        <td><div class="phim-o"><img th:replace="~{fragments/khung :: anh(${p.posterUrl()}, ${p.id()}, ${p.title()}, 'nho')}"><span class="dam" th:text="${p.title()}">Tên phim</span></div></td>
+        <td th:text="${p.genre()}">Thể loại</td>
+        <td th:class="${p.durationMin() != null ? 'chu-so' : 'mo'}" th:text="${p.durationMin() != null ? p.durationMin() + ' phút' : 'Chưa có'}">109 phút</td>
+        <td th:class="${p.ageRating() != null ? 'chu-so' : 'mo'}" th:text="${p.ageRating() != null ? p.ageRating() : 'Chưa có'}">K</td>
+        <td class="chu-so" th:text="${@fmt.ngay(p.releaseDate())}">25.09.2026</td>
+        <td><span class="nhan" th:classappend="${p.statusColor()}" th:text="${p.statusLabel()}">Đang chiếu</span></td>
+        <td><div class="thao-tac">
+          <a th:href="@{/quan-tri/phim(sua=${p.id()})} + '#them-phim'">Sửa</a>
+          <form class="can-xac-nhan" method="post" th:action="@{/quan-tri/phim/{id}/xoa(id=${p.id()})}"><button class="xoa" type="submit">Xóa</button></form>
+        </div></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- Mẫu nhập dùng chung cho thêm phim mới và sửa phim (khi có mã phim trong ô ẩn "id") -->
+  <form class="o-khoi mau-nhap" id="them-phim" style="margin-top:34px" method="post" th:action="@{/quan-tri/phim/luu}">
+    <h2 class="td" th:text="${form['id'] == '' ? 'Thêm phim mới' : 'Sửa phim'}">Thêm phim mới</h2>
+    <input type="hidden" name="id" th:value="${form['id']}">
+    <div class="luoi-nhap">
+      <label class="truong c6"><span class="so">Tên phim</span><input name="title" th:value="${form['title']}" placeholder="Nhập tên phim" required maxlength="200"></label>
+      <label class="truong c6"><span class="so">Tên gốc</span><input name="originalTitle" th:value="${form['originalTitle']}" placeholder="Tên tiếng nước ngoài, nếu có" maxlength="200"></label>
+      <label class="truong c3"><span class="so">Thể loại</span><input name="genre" th:value="${form['genre']}" placeholder="Hành động" required maxlength="100"></label>
+      <label class="truong c3"><span class="so">Thời lượng (phút)</span><input type="number" name="durationMin" th:value="${form['durationMin']}" placeholder="120" min="1" max="600"></label>
+      <label class="truong c3"><span class="so">Độ tuổi</span>
+        <select name="ageRating">
+          <option value="" th:selected="${form['ageRating'] == ''}">Chưa có</option>
+          <option value="P" th:selected="${form['ageRating'] == 'P'}">P</option>
+          <option value="K" th:selected="${form['ageRating'] == 'K'}">K</option>
+          <option value="T13" th:selected="${form['ageRating'] == 'T13'}">T13</option>
+          <option value="T16" th:selected="${form['ageRating'] == 'T16'}">T16</option>
+          <option value="T18" th:selected="${form['ageRating'] == 'T18'}">T18</option>
+        </select>
+      </label>
+      <label class="truong c3"><span class="so">Ngày khởi chiếu</span><input type="date" name="releaseDate" th:value="${form['releaseDate']}" required></label>
+      <label class="truong c6"><span class="so">Đường dẫn ảnh poster</span><input name="posterUrl" th:value="${form['posterUrl']}" placeholder="https://..." maxlength="500"></label>
+      <label class="truong c6"><span class="so">Đường dẫn ảnh ngang (cho phim nổi bật)</span><input name="backdropUrl" th:value="${form['backdropUrl']}" placeholder="https://..." maxlength="500"></label>
+      <label class="truong c12"><span class="so">Đường dẫn trailer trên YouTube (để trống nếu chưa có)</span><input name="trailerUrl" th:value="${form['trailerUrl']}" placeholder="https://www.youtube.com/watch?v=..." maxlength="500"></label>
+      <label class="truong c6"><span class="so">Đạo diễn</span><input name="director" th:value="${form['director']}" placeholder="Tên đạo diễn" maxlength="150"></label>
+      <label class="truong c6"><span class="so">Trạng thái</span>
+        <select name="status">
+          <option value="NOW_SHOWING" th:selected="${form['status'] == 'NOW_SHOWING'}">Đang chiếu</option>
+          <option value="COMING_SOON" th:selected="${form['status'] == 'COMING_SOON'}">Sắp chiếu</option>
+          <option value="ENDED" th:selected="${form['status'] == 'ENDED'}">Ngừng chiếu</option>
+        </select>
+      </label>
+      <label class="truong c12"><span class="so">Mô tả</span><textarea name="description" rows="3" placeholder="Nội dung tóm tắt của phim" th:text="${form['description']}"></textarea></label>
+      <div class="hang-nut">
+        <button class="nut nut-do" type="submit">Lưu phim</button>
+        <a class="nut nut-vien" th:href="@{/quan-tri/phim}">Hủy</a>
+      </div>
+    </div>
+  </form>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

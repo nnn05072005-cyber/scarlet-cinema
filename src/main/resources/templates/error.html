@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Có lỗi')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('')}"></header>
+<main>
+<div class="khung">
+  <div class="dau-trang-con">
+    <div>
+      <h1 class="td" th:text="${status == 404 ? 'Không tìm thấy trang' : (status == 403 ? 'Không có quyền vào trang này' : 'Có lỗi xảy ra')}">Có lỗi xảy ra</h1>
+      <p th:text="${status == 404 ? 'Trang bạn tìm không có, hoặc đã bị xóa.' : (status == 403 ? 'Trang này chỉ dành cho quản trị viên.' : 'Bạn hãy thử lại sau ít phút.')}">Bạn hãy thử lại.</p>
+    </div>
+    <span class="so" th:text="${'Mã lỗi ' + status}">Mã lỗi 404</span>
+  </div>
+  <a class="nut nut-do" th:href="@{/}">Về trang phim</a>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/khung :: dau('Vé của bạn')}"></head>
+<body>
+<div th:replace="~{fragments/khung :: nen}"></div>
+<header th:replace="~{fragments/khung :: thanh('ve')}"></header>
+<main>
+<div class="khung" style="max-width:1010px">
+  <div class="dau-ve">
+    <span class="so" th:text="${vuaDat != null ? 'Thanh toán thành công' : 'Vé điện tử'}">Thanh toán thành công</span>
+    <h1 class="td">Vé của bạn</h1>
+    <p>
+      <th:block th:text="${'Đã thanh toán ' + @fmt.tien(ve.totalAmount()) + ' bằng ' + ve.methodLabel() + ' lúc ' + @fmt.gio(ve.paidAt()) + ' ngày ' + @fmt.ngay(ve.paidAt()) + '.'}">Đã thanh toán.</th:block>
+      <th:block th:if="${ve.discounted()}" th:text="${'Đã giảm ' + @fmt.tien(ve.discountAmount()) + ' nhờ mã ' + ve.promoCode() + '.'}">Đã giảm 22.500 đ nhờ mã SCARLET10.</th:block>
+      Đưa mã QR này cho nhân viên soát vé để vào phòng chiếu.
+    </p>
+  </div>
+
+  <div class="ve">
+    <div class="anh"><img th:replace="~{fragments/khung :: anh(${ve.posterUrl()}, ${ve.movieId()}, ${ve.movieTitle()}, '')}"></div>
+    <div class="than">
+      <span class="so">Scarlet Cinema · Vé xem phim</span>
+      <h2 class="td" th:classappend="${ve.sizeClass()}" th:text="${ve.movieTitle()}">Tên phim</h2>
+      <p class="luu-y" th:if="${ve.ageRating() != null}" th:text="${ve.ageRating() + ' · ' + ve.ratingNote()}">K · Giải thích độ tuổi</p>
+      <div class="luoi">
+        <div><span class="so" th:text="${@fmt.thu(ve.startTime())}">Thứ Hai</span><b th:text="${@fmt.ngay(ve.startTime())}">05.10.2026</b></div>
+        <div><span class="so">Giờ chiếu</span><b th:text="${@fmt.gio(ve.startTime())}">19:30</b></div>
+        <div><span class="so">Phòng</span><b th:text="${ve.roomShort()}">03</b></div>
+        <div><span class="so">Ghế</span><b th:classappend="${ve.ticketCount() > 4} ? 'nhieu'" th:text="${ve.seats()}">E4, E5, E6</b></div>
+        <div><span class="so">Số vé</span><b th:text="${@fmt.haiSo(ve.ticketCount())}">03</b></div>
+        <div><span class="so">Tổng tiền</span><b th:text="${@fmt.tien(ve.totalAmount())}">225.000 đ</b></div>
+      </div>
+    </div>
+    <div class="cuong">
+      <span class="so">Mã soát vé</span>
+      <!-- Mã QR do máy chủ tạo bằng thư viện ZXing, nội dung là mã đặt vé -->
+      <div class="qr" th:utext="${qr}"></div>
+      <div class="ma" th:text="${ve.code()}">SC-20261005-0147</div>
+    </div>
+  </div>
+
+  <div class="sau-ve">
+    <a class="nut nut-vien" th:unless="${nguoiDung.admin()}" th:href="@{/ve-cua-toi}">Xem lịch sử vé</a>
+    <a class="nut nut-vien" th:if="${nguoiDung.admin()}" th:href="@{/quan-tri/ve}">Về danh sách vé</a>
+    <a class="nut nut-do" th:href="@{/}">Về trang phim</a>
+  </div>
+</div>
+</main>
+<footer th:replace="~{fragments/khung :: chan}"></footer>
+
+<!-- Thông báo "Thanh toán thành công": chỉ hiện một lần, ngay sau khi vừa thanh toán xong.
+     Bấm "Xem vé" hoặc dấu × thì thông báo đóng lại và thấy vé; bấm "Về trang chủ" thì quay lại trang phim (vé vẫn nằm trong mục Vé của tôi). -->
+<th:block th:if="${vuaDat != null}">
+<div class="modal fade" id="da-thanh-toan" tabindex="-1" aria-label="Thanh toán thành công">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px"><div class="modal-content qc">
+    <div class="phieu-lon">
+      <button class="dong" data-bs-dismiss="modal" aria-label="Đóng">&times;</button>
+      <div class="tren">
+        <span class="so" th:text="${'Đơn ' + ve.code()}">Đơn SC-20261005-0152</span>
+        <div class="dau-tich" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="38" height="38"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="gia-tri so-tien" th:text="${@fmt.tien(ve.totalAmount())}">225.000 đ</div>
+        <span class="so" th:text="${'Đã trả bằng ' + ve.methodLabel()}">Đã trả bằng chuyển khoản QR</span>
+      </div>
+      <div class="duoi">
+        <h2 class="td">Thanh toán thành công</h2>
+        <p th:text="${'Bạn đã có ' + ve.ticketCount() + ' vé xem phim ' + ve.movieTitle() + '. Đưa mã QR trên vé cho nhân viên soát vé để vào phòng chiếu.'}">Bạn đã có vé.</p>
+        <button class="nut nut-do" type="button" data-bs-dismiss="modal">Xem vé</button><a class="de-sau" th:href="@{/}">Về trang chủ</a>
+      </div>
+    </div>
+  </div></div>
+</div>
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    new bootstrap.Modal(document.getElementById("da-thanh-toan")).show();
+  });
+</script>
+</th:block>
+</body>
+</html>
